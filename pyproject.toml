@@ -1,0 +1,28 @@
+[project]
+name = "scale"
+version = "0.1.0"
+description = "SCALE is a Python package for identifying multi-scale spatial domains in spatial omics data."
+authors = [
+    {name = "dschaub95",email = "schaub.darius@gmail.com"},
+    {name = "behnam-yousefi",email = "yousefi.bme@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "tqdm",
+    "scipy",
+    "scanpy",
+    "torch",
+    "torch-geometric",
+    "scikit-learn",
+    "jupyter",
+    "leidenalg",
+    "igraph"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
