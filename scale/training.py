@@ -6,15 +6,24 @@ from tqdm.auto import tqdm
 from torch_geometric.utils import negative_sampling
 
 from scale.model import GNN
-from scale.utils import preprocess, spatial_graph, GraphAggregation, seed_everything
+from scale.utils import (
+    preprocess,
+    spatial_graph,
+    GraphAggregation,
+    seed_everything,
+)
+from scale.config import Config
 
 
-def train(adata, cfg, spatial_key="spatial", seed=200, device=None, return_model=False):
-    seed_everything(seed)
+def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=False):
+    seed_everything(cfg.seed)
 
-    if device is None:
+    if cfg.device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
+
+    if layer is not None:
+        adata.X = adata.layers[layer].copy()
 
     if cfg.preprocess:
         preprocess(adata)
@@ -88,7 +97,7 @@ def train(adata, cfg, spatial_key="spatial", seed=200, device=None, return_model
                     optimizer,
                     lam=lam,
                     print_loss=None,
-                    epoch=100,
+                    epoch=epoch,
                     batch=None,
                     y_out=Y_agg,
                 )

@@ -18,10 +18,10 @@ from scale.config import Config
 def calc_clusterings(
     adata,
     n_jobs=20,
-    spatial_key="spatial",
+    ensure_unique=True,
     **kwargs,
 ):
-    cfg = Config(adata.uns["scale"]["config"])
+    cfg = Config(**adata.uns["scale"]["config"])
     resolutions = np.arange(
         cfg.resolution_set.start, cfg.resolution_set.stop, cfg.resolution_set.step
     ).round(4)
@@ -31,10 +31,15 @@ def calc_clusterings(
     emb_keys = [k for k in adata.obsm.keys() if "X_gnn" in k]
 
     for emb_key in emb_keys:
-        ad_tmp = sc.AnnData(adata.obsm[emb_key])
-        ad_tmp.obs = pd.DataFrame(
-            adata.obsm[spatial_key], columns=["x", "y"], index=adata.obs_names
+        ad_tmp = sc.AnnData(
+            adata.obsm[emb_key], obs=pd.DataFrame(index=adata.obs_names)
         )
+        if ensure_unique:
+            _, unique_indices, inverse_indices = np.unique(
+                ad_tmp.X, axis=0, return_index=True, return_inverse=True
+            )
+            ensure_unique = False if len(unique_indices) == ad_tmp.shape[0] else True
+            ad_tmp = ad_tmp[unique_indices] if ensure_unique else ad_tmp
         sc.pp.neighbors(ad_tmp, use_rep="X")
         dist = emb_key.split("dist_")[-1].split("_lam")[0]
         for i in tqdm(range(cfg.n_repeats), desc="Calculating clusterings"):
@@ -48,6 +53,9 @@ def calc_clusterings(
                 **kwargs,
             )
         clusterings = ad_tmp.obs[[c for c in ad_tmp.obs.columns if "leiden" in c]]
+        if ensure_unique:
+            clusterings = clusterings.iloc[inverse_indices].copy()
+            clusterings.index = adata.obs_names
         all_clusterings = pd.concat([all_clusterings, clusterings], axis=1)
     adata.obsm["scale_clusterings"] = all_clusterings
 
