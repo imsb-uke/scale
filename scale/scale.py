@@ -98,7 +98,7 @@ def run_scale(
             min_dist=kwargs.get("min_dist", 15),
             max_dist=kwargs.get("max_dist", 55),
         )
-        top_results = calc_entropy(
+        results = calc_entropy(
             adata,
             n_levels=kwargs.get("n_levels", 2),
             top_n=kwargs.get("top_n", 0.15),
@@ -176,82 +176,3 @@ def create_ct_onehot_adata(adata, celltype_key):
         obsm=adata.obsm,
         uns=adata.uns,
     )
-
-
-def prepare_multi_sample_integration(
-    adata,
-    sample_key,
-    obs_key=None,
-    kind="ct_expression",
-    layer_in=None,
-    layer_out="X_agg",
-    spatial_key="spatial",
-    displacement=1000,
-):
-    spatial_sample_split(
-        adata,
-        sample_key,
-        in_key=spatial_key,
-        out_key=spatial_key,
-        displacement=displacement,
-    )
-
-    if kind == "ct_expression":
-        # if there is a sample with all cell types use that as the reference
-        # if not select the one with the most cell types and add information from other samples for all missing ones
-        ct_counts = (
-            adata.obs.groupby(sample_key, observed=True)[obs_key]
-            .value_counts()
-            .unstack()
-            .fillna(0)
-        )
-        n_cts = ct_counts.astype(bool).astype(int).sum(axis=1)
-
-        ref_sample = n_cts.idxmax()
-        # add information from other samples for all missing ones
-        vector_map = {}
-        for col in ct_counts.columns:
-            if ct_counts.loc[ref_sample, col] == 0:
-                vector_map[col] = get_ct_expression(
-                    adata, col, ct_counts[col].idxmax(), obs_key, sample_key, layer_in
-                )
-            else:
-                vector_map[col] = get_ct_expression(
-                    adata, col, ref_sample, obs_key, sample_key, layer_in
-                )
-        X = np.array([vector_map[ct] for ct in adata.obs[obs_key]])
-        adata.layers[layer_out] = X
-        return adata
-    elif kind == "ct_onehot":
-        df = pd.get_dummies(adata.obs[obs_key], dtype=np.int8)
-        X = df.values
-        var = pd.DataFrame(index=df.columns)
-
-        ad_tmp = sc.AnnData(
-            X=X,
-            obs=adata.obs[[sample_key]],
-            obsm={spatial_key: adata.obsm[spatial_key]},
-            var=var,
-        )
-
-        # optionally run pca
-        sc.pp.pca(ad_tmp, n_comps=50)
-
-        ad_tmp = sc.AnnData(
-            X=ad_tmp.obsm["X_pca"],
-            obs=adata.obs[[sample_key]],
-            obsm={spatial_key: adata.obsm[spatial_key]},
-        )
-        return ad_tmp
-    elif kind == "harmony":
-        preprocess(adata)
-        sc.pp.pca(adata)
-        sce.pp.harmony_integrate(adata, sample_key)
-        ad_tmp = sc.AnnData(
-            X=adata.obsm["X_pca_harmony"],
-            obs=adata.obs[[sample_key]],
-            obsm={spatial_key: adata.obsm[spatial_key]},
-        )
-        return ad_tmp
-    else:
-        raise ValueError(f"Invalid kind: {kind}")
