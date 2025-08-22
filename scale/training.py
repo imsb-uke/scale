@@ -34,10 +34,16 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
     )
 
     # setup training parameters
-    distances = np.arange(
-        cfg.distance_set.start, cfg.distance_set.stop, cfg.distance_set.step
-    )
-    knn_values = np.arange(cfg.knn_set.start, cfg.knn_set.stop, cfg.knn_set.step)
+    if isinstance(cfg.distance_set, dict):
+        distances = np.arange(
+            cfg.distance_set.start, cfg.distance_set.stop, cfg.distance_set.step
+        )
+    else:
+        distances = cfg.distance_set
+    if isinstance(cfg.knn_set, dict):
+        knn_values = np.arange(cfg.knn_set.start, cfg.knn_set.stop, cfg.knn_set.step)
+    else:
+        knn_values = cfg.knn_set
     lambda_set = cfg.lambda_set
 
     if cfg.spatial_graph_method == "distance":

@@ -70,10 +70,10 @@ class Config(BaseConfig):
     sample_key: str = None
     preprocess: bool = False
     device: str | None = None
-    distance_set: dict = field(
+    distance_set: dict | list = field(
         default_factory=lambda: {"start": 15, "stop": 60, "step": 5}
     )
-    knn_set: dict = field(default_factory=lambda: {"start": 5, "stop": 40, "step": 5})
+    knn_set: dict | list = field(default_factory=lambda: {"start": 5, "stop": 40, "step": 5})
     lambda_set: list = field(
         default_factory=lambda: [
             1e-6,
