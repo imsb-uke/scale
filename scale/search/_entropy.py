@@ -247,8 +247,10 @@ def calc_entropy(
         col_names = [f"scale_l{i}_{setting}" for i, setting in enumerate(settings)]
         adata.obs[col_names] = adata.obsm["scale_clusterings"][settings]
         break
-
-    return top_results
+    # sort by avg_entropy from low to high
+    results = results.sort_values("avg_entropy", ascending=True)
+    # store all results
+    adata.uns["scale"]["entropy"] = results
 
 
 def to_output(t, avg_entropy):
