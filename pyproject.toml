@@ -14,6 +14,7 @@ dependencies = [
     "tqdm",
     "scipy",
     "scanpy",
+    "squidpy",
     "torch",
     "torch-geometric",
     "scikit-learn",
