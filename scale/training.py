@@ -29,9 +29,7 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
         preprocess(adata)
 
     # calculate spatial graph for morans I and gearys c calculations
-    sc.pp.neighbors(
-        adata, use_rep=spatial_key, key_added=spatial_key, knn=True, n_neighbors=4
-    )
+    sc.pp.neighbors(adata, use_rep=spatial_key, key_added=None, knn=True, n_neighbors=4)
 
     # setup training parameters
     if isinstance(cfg.distance_set, dict):
@@ -119,11 +117,11 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
             loss_1[i, j] = loss1
             loss_2[i, j] = loss2
             MI[i, j] = sc.metrics.morans_i(
-                adata.obsp["spatial_connectivities"],
+                adata.obsp["connectivities"],
                 adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
             ).mean()
             GC[i, j] = sc.metrics.gearys_c(
-                adata.obsp["spatial_connectivities"],
+                adata.obsp["connectivities"],
                 adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
             ).mean()
 

@@ -12,6 +12,8 @@ def calc_stability(
     verbose: int | bool = False,
     min_dist: float | None = None,
     max_dist: float | None = None,
+    min_knn: int | None = None,
+    max_knn: int | None = None,
     min_res: float | None = None,
     max_res: float | None = None,
 ):
@@ -32,14 +34,24 @@ def calc_stability(
     if max_res is not None:
         resolutions = [r for r in resolutions if float(r) <= max_res]
 
-    # extract all possible distances
-    distances = sorted(list(set([x.split("dist_")[-1].split("_")[0] for x in columns])))
+    # extract all possible 
+    sparam_str = "dist" if "dist" in columns[0] else "knn"
+    sparam_values = sorted(list(set([x.split(f"{sparam_str}_")[-1].split("_")[0] for x in columns])), key=float)
 
-    if min_dist is not None:
-        distances = [d for d in distances if float(d) >= min_dist]
-
-    if max_dist is not None:
-        distances = [d for d in distances if float(d) <= max_dist]
+    
+    def check_bounds(sparam_values, min_sparam, max_sparam):
+        if min_sparam is not None:
+            sparam_values = [d for d in sparam_values if float(d) >= min_sparam]
+        if max_sparam is not None:
+            sparam_values = [d for d in sparam_values if float(d) <= max_sparam]
+        return sparam_values
+    
+    if sparam_str == "dist":
+        sparam_values = check_bounds(sparam_values, min_dist, max_dist)
+    elif sparam_str == "knn":
+        sparam_values = check_bounds(sparam_values, min_knn, max_knn)
+    else:
+        raise ValueError(f"Invalid sparam_str: {sparam_str}")
 
     # extract number of repetitions
     if n_repeat is None:
@@ -51,19 +63,19 @@ def calc_stability(
     if verbose:
         print(f"n_repeat: {n_repeat}")
         print(f"n_resolutions: {len(resolutions)}")
-        print(f"n_distances: {len(distances)}")
+        print(f"n_{sparam_str}_values: {len(sparam_values)}")
         print(f"resolutions: {resolutions}")
-        print(f"distances: {distances}")
+        print(f"{sparam_str}_values: {sparam_values}")
 
     stability_df = pd.DataFrame(
-        np.zeros((len(distances), len(resolutions))),
-        index=distances,
+        np.zeros((len(sparam_values), len(resolutions))),
+        index=sparam_values,
         columns=resolutions,
     )
-    stability_df.index.name = "distance"
+    stability_df.index.name = sparam_str
     stability_df.columns.name = "resolution"
-    for i, dist in tqdm(
-        enumerate(distances), total=len(distances), desc="Calculating stability"
+    for i, sparam_value in tqdm(
+        enumerate(sparam_values), total=len(sparam_values), desc="Calculating stability"
     ):
         for j, res in enumerate(resolutions):
             ari_scores = []
@@ -71,15 +83,15 @@ def calc_stability(
                 for r2 in range(r1 + 1, n_repeat):
                     try:
                         ari = adjusted_rand_score(
-                            df[f"leiden_rep_{r1}_dist_{dist}_res_{res}"],
-                            df[f"leiden_rep_{r2}_dist_{dist}_res_{res}"],
+                            df[f"leiden_rep_{r1}_{sparam_str}_{sparam_value}_res_{res}"],
+                            df[f"leiden_rep_{r2}_{sparam_str}_{sparam_value}_res_{res}"],
                         )
                     except Exception as e:
                         print("Error:", e)
                         ari = 0
                     ari_scores.append(ari)
             ari_scores = np.array(ari_scores)
-            stability_df.loc[dist, res] = ari_scores.mean()
+            stability_df.loc[sparam_value, res] = ari_scores.mean()
 
     for col in stability_df.columns:
         stability_df[col] = stability_df[col].astype(float)

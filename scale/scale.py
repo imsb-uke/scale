@@ -18,6 +18,7 @@ import scanpy.external as sce
 def run_scale(
     adata,
     cfg: Config,
+    use_svgs: bool = True,
     sample_key: str | None = None,
     integration_method: str | None = None,
     layer: str | None = None,
@@ -82,30 +83,47 @@ def run_scale(
         else:
             raise ValueError(f"Invalid integration method: {integration_method}")
     else:
-        train(adata, cfg, layer=layer, spatial_key=spatial_key)
-        select_best_lambdas(adata)
+        if use_svgs and "spatially_variable" in adata.var.columns:
+            # filter adata to only include spatially variable genes
+            ad_tmp = adata[:, adata.var["spatially_variable"]].copy()
+            print(f"Filtered adata to {ad_tmp.n_vars} spatially variable genes!")
+        if use_svgs and "spatially_variable" not in adata.var.columns:
+            print("No spatially variable genes found, running scale without them")
+            ad_tmp = adata
+        else:
+            ad_tmp = adata
+
+        train(ad_tmp, cfg, layer=layer, spatial_key=spatial_key)
+        select_best_lambdas(ad_tmp)
 
         calc_clusterings(
-            adata,
+            ad_tmp,
+            cfg=cfg,
             flavor=kwargs.get("flavor", "igraph"),
             n_iterations=kwargs.get("n_iterations", 2),
         )
 
         calc_stability(
-            adata,
+            ad_tmp,
             verbose=kwargs.get("verbose", True),
             n_repeat=kwargs.get("n_repeat", 4),
             min_dist=kwargs.get("min_dist", 15),
             max_dist=kwargs.get("max_dist", 55),
+            min_knn=kwargs.get("min_knn", None),
+            max_knn=kwargs.get("max_knn", None),
+            min_res=kwargs.get("min_res", None),
+            max_res=kwargs.get("max_res", None),
         )
         results = calc_entropy(
-            adata,
+            ad_tmp,
             n_levels=kwargs.get("n_levels", 2),
             top_n=kwargs.get("top_n", 0.15),
             enforce_dist_change=kwargs.get("enforce_dist_change", False),
             min_ncluster_increase=kwargs.get("min_ncluster_increase", 20),
             min_nclusters_start=kwargs.get("min_nclusters_start", 3),
         )
+        # make sure result is present in original object
+        transfer_scale_results(ad_tmp, adata)
 
 
 def transfer_scale_results(from_adata, to_adata):

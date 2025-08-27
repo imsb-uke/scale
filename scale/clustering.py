@@ -17,18 +17,19 @@ from scale.config import Config
 
 def calc_clusterings(
     adata,
+    cfg: Config,
     n_jobs=20,
     ensure_unique=True,
+    emb_prefix="X_gnn",
     **kwargs,
 ):
-    cfg = Config(**adata.uns["scale"]["config"])
     resolutions = np.arange(
         cfg.resolution_set.start, cfg.resolution_set.stop, cfg.resolution_set.step
     ).round(4)
 
     all_clusterings = pd.DataFrame(index=adata.obs_names)
 
-    emb_keys = [k for k in adata.obsm.keys() if "X_gnn" in k]
+    emb_keys = [k for k in adata.obsm.keys() if emb_prefix in k]
 
     for emb_key in emb_keys:
         ad_tmp = sc.AnnData(
@@ -41,12 +42,16 @@ def calc_clusterings(
             ensure_unique = False if len(unique_indices) == ad_tmp.shape[0] else True
             ad_tmp = ad_tmp[unique_indices] if ensure_unique else ad_tmp
         sc.pp.neighbors(ad_tmp, use_rep="X")
-        dist = emb_key.split("dist_")[-1].split("_lam")[0]
+
+        # check if dist or knn is used
+        sparam_str = "dist" if "dist" in emb_key else "knn"
+        sparam = emb_key.split(f"{sparam_str}_")[-1].split("_lam")[0]
+
         for i in tqdm(range(cfg.n_repeats), desc="Calculating clusterings"):
             parallel_leiden(
                 ad_tmp,
                 resolutions,
-                key_added=f"leiden_rep_{i}_dist_{dist}",
+                key_added=f"leiden_rep_{i}_{sparam_str}_{sparam}",
                 n_jobs=n_jobs,
                 verbose=kwargs.get("verbose", False),
                 random_state=i,
