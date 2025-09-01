@@ -19,6 +19,7 @@ def run_scale(
     adata,
     cfg: Config,
     use_svgs: bool = True,
+    use_hvgs: bool = False,
     sample_key: str | None = None,
     integration_method: str | None = None,
     layer: str | None = None,
@@ -87,11 +88,18 @@ def run_scale(
             # filter adata to only include spatially variable genes
             ad_tmp = adata[:, adata.var["spatially_variable"]].copy()
             print(f"Filtered adata to {ad_tmp.n_vars} spatially variable genes!")
-        if use_svgs and "spatially_variable" not in adata.var.columns:
+        elif use_svgs and "spatially_variable" not in adata.var.columns:
             print("No spatially variable genes found, running scale without them")
             ad_tmp = adata
         else:
             ad_tmp = adata
+
+        if use_hvgs and "highly_variable" in ad_tmp.var.columns:
+            ad_tmp = ad_tmp[:, ad_tmp.var["highly_variable"]].copy()
+            print(f"Filtered adata to {ad_tmp.n_vars} highly variable genes!")
+        if use_hvgs and "highly_variable" not in ad_tmp.var.columns:
+            print("No highly variable genes found, running scale without them")
+
 
         train(ad_tmp, cfg, layer=layer, spatial_key=spatial_key)
         select_best_lambdas(ad_tmp)
