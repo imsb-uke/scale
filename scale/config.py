@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-
+from typing import Literal
 
 class BaseConfig(dict):
     """Dict that also supports attribute access (recursively)."""
@@ -97,7 +97,7 @@ class Config(BaseConfig):
         default_factory=lambda: {"start": 0.01, "stop": 1.2, "step": 0.02}
     )
     n_repeats: int = 5
-    spatial_graph_method: str = "distance"
+    spatial_graph_method: Literal["distance", "knn"] = "distance"
     repeated_negative_sampling: bool = False
     y_aggregated: bool = False
 
