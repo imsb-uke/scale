@@ -6,29 +6,42 @@ from tqdm.auto import tqdm
 from torch_geometric.utils import negative_sampling
 
 from scale.model import GNN
-from scale.utils import preprocess, spatial_graph, GraphAggregation, seed_everything
+from scale.utils import (
+    preprocess,
+    spatial_graph,
+    GraphAggregation,
+    seed_everything,
+)
+from scale.config import Config
 
 
-def train(adata, cfg, spatial_key="spatial", seed=200, device=None, return_model=False):
-    seed_everything(seed)
+def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=False):
+    seed_everything(cfg.seed)
 
-    if device is None:
+    if cfg.device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
+
+    if layer is not None:
+        adata.X = adata.layers[layer].copy()
 
     if cfg.preprocess:
         preprocess(adata)
 
     # calculate spatial graph for morans I and gearys c calculations
-    sc.pp.neighbors(
-        adata, use_rep=spatial_key, key_added=spatial_key, knn=True, n_neighbors=4
-    )
+    sc.pp.neighbors(adata, use_rep=spatial_key, key_added=None, knn=True, n_neighbors=4)
 
     # setup training parameters
-    distances = np.arange(
-        cfg.distance_set.start, cfg.distance_set.stop, cfg.distance_set.step
-    )
-    knn_values = np.arange(cfg.knn_set.start, cfg.knn_set.stop, cfg.knn_set.step)
+    if isinstance(cfg.distance_set, dict):
+        distances = np.arange(
+            cfg.distance_set.start, cfg.distance_set.stop, cfg.distance_set.step
+        )
+    else:
+        distances = cfg.distance_set
+    if isinstance(cfg.knn_set, dict):
+        knn_values = np.arange(cfg.knn_set.start, cfg.knn_set.stop, cfg.knn_set.step)
+    else:
+        knn_values = cfg.knn_set
     lambda_set = cfg.lambda_set
 
     if cfg.spatial_graph_method == "distance":
@@ -88,7 +101,7 @@ def train(adata, cfg, spatial_key="spatial", seed=200, device=None, return_model
                     optimizer,
                     lam=lam,
                     print_loss=None,
-                    epoch=100,
+                    epoch=epoch,
                     batch=None,
                     y_out=Y_agg,
                 )
@@ -104,11 +117,11 @@ def train(adata, cfg, spatial_key="spatial", seed=200, device=None, return_model
             loss_1[i, j] = loss1
             loss_2[i, j] = loss2
             MI[i, j] = sc.metrics.morans_i(
-                adata.obsp["spatial_connectivities"],
+                adata.obsp["connectivities"],
                 adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
             ).mean()
             GC[i, j] = sc.metrics.gearys_c(
-                adata.obsp["spatial_connectivities"],
+                adata.obsp["connectivities"],
                 adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
             ).mean()
 

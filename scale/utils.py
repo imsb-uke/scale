@@ -2,11 +2,10 @@ import numpy as np
 from scipy.spatial import KDTree
 import torch
 import scanpy as sc
-
 from itertools import product
 
 from collections import Counter
-
+from warnings import warn
 import random
 import scipy
 
@@ -19,12 +18,35 @@ from sklearn.metrics import silhouette_samples
 from scipy.optimize import curve_fit
 
 
-def preprocess(adata):
-    if adata.X.max() < 10:
-        print("The data seems to be already normalized")
+def normalize_total_per_sample(adata, sample_key, **kwargs):
+    kwargs["inplace"] = True
+    kwargs["copy"] = False
+    if kwargs.get("target_sum", None) is not None:
+        # if target sum is provided, samples make no difference
+        sc.pp.normalize_total(adata, **kwargs)
+    else:
+        adata.X = adata.X.astype(np.float32)
+        for sample in adata.obs[sample_key].unique():
+            mask = adata.obs[sample_key] == sample
+            sub_ad = adata[mask].copy()
+            sc.pp.normalize_total(sub_ad, **kwargs)
+            adata.X[mask.values] = sub_ad.X
+
+
+def scale_by_max(X, epsilon=1e-7):
+    max_vals = X.max(axis=0).toarray()[0]
+    X_scaled = X.multiply(1 / (max_vals + epsilon))
+    return X_scaled
+
+
+def preprocess(adata, sample_key=None):
+    check_for_raw_counts(adata.X)
     sc.pp.filter_cells(adata, min_counts=10)
     sc.pp.filter_genes(adata, min_cells=5)
-    sc.pp.normalize_total(adata, inplace=True)
+    if sample_key is not None:
+        normalize_total_per_sample(adata, sample_key)
+    else:
+        sc.pp.normalize_total(adata, inplace=True)
     sc.pp.log1p(adata)
 
 
@@ -52,7 +74,7 @@ def centers2edgeindex(centers, thershold):
     return edge_index, edge_weight
 
 
-def spatial_graph(adata, method="knn", param=10, n_sample=None):
+def spatial_graph(adata, method="knn", param=10, n_sample=None, spatial_key="spatial"):
     """
     method: ['knn', 'distance']
     param:
@@ -67,9 +89,14 @@ def spatial_graph(adata, method="knn", param=10, n_sample=None):
         X = adata.X.toarray()
     else:
         raise ValueError(f"Unsupported data type: {type(adata.X)}")
+
     X = torch.tensor(X, dtype=torch.float32)
-    X = X / (X.max(dim=0)[0] + 0.0000001)
-    centers = adata.obsm["spatial"]
+    # minmax normalization
+    max_vals = X.max(dim=0)[0]
+    min_vals = X.min(dim=0)[0]
+    X = (X - min_vals) / (max_vals - min_vals + 1e-7)
+
+    centers = adata.obsm[spatial_key]
     centers = torch.tensor(centers, dtype=torch.float32)
 
     if method == "distance":
@@ -367,3 +394,39 @@ def seed_everything(seed):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
+
+
+def spatial_sample_split(
+    adata, sample_key, displacement=1000, out_key="spatial_split", in_key="spatial"
+):
+    sample_widths = []
+    for cc in adata.obs[sample_key].unique():
+        mask = adata.obs[sample_key] == cc
+        coords_orig = adata[mask].obsm[in_key]
+        x_min = coords_orig[:, 0].min()
+        x_max = coords_orig[:, 0].max()
+        width = x_max - x_min
+        sample_widths.append(width)
+    max_sample_width = max(sample_widths)
+
+    adata.obsm[out_key] = adata.obsm[in_key].copy()
+    interval = max_sample_width + displacement
+    for i, cc in enumerate(adata.obs[sample_key].unique()):
+        mask = adata.obs[sample_key] == cc
+        coords_orig = adata[mask].obsm[in_key]
+        x_min, y_min = coords_orig.min(axis=0)
+        coords = coords_orig - np.array([x_min, y_min])[None, :]
+        coords[:, 0] += i * interval
+        adata.obsm[out_key][mask.values] = coords
+
+
+def check_for_raw_counts(X):
+    max_val = X.max()
+    sum_val = X.sum()
+
+    if not max_val.is_integer() or not sum_val.is_integer():
+        warn(
+            f"⚠️ X might not contain raw counts! X.max() = {max_val}, X.sum() = {sum_val}",
+            UserWarning,
+            stacklevel=1,
+        )

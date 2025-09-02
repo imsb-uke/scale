@@ -11,17 +11,19 @@ from scale.utils import extract_dist, is_ordered
 
 def find_best_settings(adata: AnnData, cutoff=None, top_n=None, min_dist=None):
     stability_df = adata.uns["scale"]["stability"]
+    sparam_str = stability_df.index.name
 
+    # TODO: remove this, is handled by calc_stability function
     if min_dist is not None:
-        stability_df.index = stability_df.index.astype(int)
+        stability_df.index = stability_df.index.astype(float)
         stability_df = stability_df.loc[stability_df.index >= min_dist, :]
 
     if cutoff is not None:
         mask = stability_df >= cutoff
         sub_df = mask.stack()[mask.stack()].reset_index()
         sub_df["setting"] = (
-            "leiden_rep_0_dist_"
-            + sub_df["distance"].astype(str)
+            f"leiden_rep_0_{sparam_str}_"
+            + sub_df[sparam_str].astype(str)
             + "_res_"
             + sub_df["resolution"].astype(str)
         )
@@ -36,13 +38,13 @@ def find_best_settings(adata: AnnData, cutoff=None, top_n=None, min_dist=None):
         settings = (
             stability_df.stack()
             .nlargest(top_n)
-            .index.map(lambda x: f"leiden_rep_0_dist_{x[0]}_res_{x[1]}")
+            .index.map(lambda x: f"leiden_rep_0_{sparam_str}_{x[0]}_res_{x[1]}")
             .tolist()
         )
     else:
         settings = (
             stability_df.stack()
-            .index.map(lambda x: f"leiden_rep_0_dist_{x[0]}_res_{x[1]}")
+            .index.map(lambda x: f"leiden_rep_0_{sparam_str}_{x[0]}_res_{x[1]}")
             .tolist()
         )
     return settings
@@ -247,8 +249,10 @@ def calc_entropy(
         col_names = [f"scale_l{i}_{setting}" for i, setting in enumerate(settings)]
         adata.obs[col_names] = adata.obsm["scale_clusterings"][settings]
         break
-
-    return top_results
+    # sort by avg_entropy from low to high
+    results = results.sort_values("avg_entropy", ascending=True)
+    # store all results
+    adata.uns["scale"]["entropy"] = results
 
 
 def to_output(t, avg_entropy):
