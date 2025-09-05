@@ -333,17 +333,31 @@ def curve_optimal_point(y):
 
 def select_best_lambdas(adata, del_other_embeddings=True):
     MI = adata.uns["scale"]["mi"]
-    best_lambdas = [curve_optimal_point(MI[i]) for i in range(len(MI))]
+    best_lambdas = [int(curve_optimal_point(MI[i])) for i in range(len(MI))]
     lambdas = np.array(adata.uns["scale"]["lambdas"])
     best_lambdas = lambdas[best_lambdas]
-    if adata.uns["scale"].get("distances", None) is not None:
-        params = list(adata.uns["scale"]["distances"])
+
+    emb_keys = [k for k in adata.obsm.keys() if "X_gnn_" in k]
+    if "dist" in emb_keys[0]:
+        params = sorted(
+            list(set([x.split("dist_")[-1].split("_")[0] for x in emb_keys])), key=float
+        )
         sparam_str = "dist"
-    elif adata.uns["scale"].get("knn_values", None) is not None:
-        params = list(adata.uns["scale"]["knn_values"])
+        assert len(params) in [
+            len(adata.uns["scale"]["distances"]),
+            len(best_lambdas),
+        ], "Params and distances do not match"
+    elif "knn" in emb_keys[0]:
+        params = sorted(
+            list(set([x.split("knn_")[-1].split("_")[0] for x in emb_keys])), key=int
+        )
         sparam_str = "knn"
+        assert len(params) in [
+            len(adata.uns["scale"]["knn_values"]),
+            len(best_lambdas),
+        ], "Params and knn_values do not match"
     else:
-        raise ValueError("No distances or knn values found in adata.uns['scale']")
+        raise ValueError("No distances or knn values found in adata.obsm")
 
     if del_other_embeddings:
         keys_to_del = []
@@ -364,10 +378,11 @@ def to_emb_key(sparam_str, param, lam):
 
 
 def to_int(x):
-    if x.is_integer():
+    if isinstance(x, (int, np.integer)):
         return int(x)
-    else:
-        return x
+    if isinstance(x, (float, np.floating)) and float(x).is_integer():
+        return int(x)
+    return x
 
 
 def emb_key_to_params(emb_key):

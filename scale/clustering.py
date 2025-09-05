@@ -26,6 +26,7 @@ def calc_clusterings(
     resolutions = np.arange(
         cfg.resolution_set.start, cfg.resolution_set.stop, cfg.resolution_set.step
     ).round(4)
+    n_repeats = 1 if cfg.stability_spatial else cfg.n_repeats
 
     all_clusterings = pd.DataFrame(index=adata.obs_names)
 
@@ -47,7 +48,7 @@ def calc_clusterings(
         sparam_str = "dist" if "dist" in emb_key else "knn"
         sparam = emb_key.split(f"{sparam_str}_")[-1].split("_lam")[0]
 
-        for i in tqdm(range(cfg.n_repeats), desc="Calculating clusterings"):
+        for i in tqdm(range(n_repeats), desc="Calculating clusterings"):
             parallel_leiden(
                 ad_tmp,
                 resolutions,

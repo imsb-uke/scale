@@ -53,6 +53,22 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
     else:
         raise ValueError(f"Invalid spatial graph method: {cfg.spatial_graph_method}")
 
+    if cfg.stability_spatial:
+        spatial_param_set = (
+            spatial_param_set[:, None] + cfg.stability_delta * np.array([-1, 0, 1])
+        ).ravel()
+        # ToDO make sure that the delta is small enough to fit between values
+        min_delta = np.min(np.diff(distances))
+        assert cfg.stability_delta < min_delta, (
+            f"stability_delta must be less than the minimum distance between distances: {min_delta}"
+        )
+    # convert to int if all values can be represented as ints
+    spatial_param_set = (
+        spatial_param_set.astype(int)
+        if np.all(np.isclose(spatial_param_set, np.round(spatial_param_set)))
+        else spatial_param_set
+    )
+
     n_features = adata.X.shape[1]
 
     loss_1 = np.zeros((len(spatial_param_set), len(lambda_set)))
@@ -61,7 +77,7 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
     GC = np.zeros((len(spatial_param_set), len(lambda_set)))
 
     # training loop
-
+    print(f"Training with graphs defined by: {sparam_str} = {spatial_param_set}")
     for i, param in tqdm(enumerate(spatial_param_set), total=len(spatial_param_set)):
         # Make a the pyg graph data
         data = spatial_graph(

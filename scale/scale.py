@@ -113,6 +113,7 @@ def run_scale(
 
         calc_stability(
             ad_tmp,
+            cfg=cfg,
             verbose=kwargs.get("verbose", True),
             n_repeat=kwargs.get("n_repeat", 4),
             min_dist=kwargs.get("min_dist", 15),
