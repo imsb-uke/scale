@@ -107,6 +107,7 @@ def run_scale(
         calc_clusterings(
             ad_tmp,
             cfg=cfg,
+            method=kwargs.get("method", "leiden"),
             flavor=kwargs.get("flavor", "igraph"),
             n_iterations=kwargs.get("n_iterations", 2),
         )
@@ -123,7 +124,7 @@ def run_scale(
             min_res=kwargs.get("min_res", None),
             max_res=kwargs.get("max_res", None),
         )
-        results = calc_entropy(
+        calc_entropy(
             ad_tmp,
             n_levels=kwargs.get("n_levels", 2),
             top_n=kwargs.get("top_n", 0.15),

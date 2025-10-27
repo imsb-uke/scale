@@ -2434,6 +2434,79 @@ files = [
 ]
 
 [[package]]
+name = "louvain"
+version = "0.8.2"
+description = "louvain is a general algorithm for methods of community detection in large networks."
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "louvain-0.8.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a2f6a07d4d5120d16e1ac81a65368e3607a77ff1c2ea7f2d6959f043349fe8cc"},
+    {file = "louvain-0.8.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ac39e8a760ce620d53b1fac314a5c6c0cdc7bc471a4973b8acc3f566459f4d78"},
+    {file = "louvain-0.8.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:17f59af1db73e5cfb49cd264bb57454a1f53f6287cde073844942e5d01898426"},
+    {file = "louvain-0.8.2-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:e25e7c2242ba3ac3d998f12a6ee329d285ce0e286bdb29996cf43cf9f80774aa"},
+    {file = "louvain-0.8.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9ffe980d7cfe7e00492eb4de8d847f7b46ce68ca2d1fa2d8c1598c03d773c66d"},
+    {file = "louvain-0.8.2-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:53dd1fa129025b71d0d5714af4ac09b85b35f9b0439e34cb36b71e8dd87e80ee"},
+    {file = "louvain-0.8.2-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:5222b93da8be423507979cbdc875fff06987a56cc649717d4afa4b3042cfd800"},
+    {file = "louvain-0.8.2-cp310-cp310-win32.whl", hash = "sha256:8c5f1362e38b821b77863a8a1173d3c135982ebc947f0313ba71fb5f2702144f"},
+    {file = "louvain-0.8.2-cp310-cp310-win_amd64.whl", hash = "sha256:9573f1b3ac42a35ff709a52bd4652aef3dcd041a5bbd589df2a4e831e3d81931"},
+    {file = "louvain-0.8.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ad0f20e5e9ed22db3c0cfec25d5c5f004a4a2ca00f556779f5cdc421d816a250"},
+    {file = "louvain-0.8.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:3514682845c7b9d8f14e275f3826ad8aeaff079267eadaec1353a52629f1212e"},
+    {file = "louvain-0.8.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4dc11889d69b596f7f5755a4a197ef96da480b6e09959d3340717836ae3cc255"},
+    {file = "louvain-0.8.2-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b7ae4a8b11f94acd90509972a2fc5d393ad2a6f327e5506be3ed5e97b6ec94ce"},
+    {file = "louvain-0.8.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:df66bf58b03ca257299e5652816bae0203a62447f31eec1008f719e0d5604b88"},
+    {file = "louvain-0.8.2-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:f25d97fe0c4367ea9a9ca3edd731d742b6a0f420e922ea1b4ce4448b8caa0a3b"},
+    {file = "louvain-0.8.2-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:a4968137c22004b7ffb465f87f798d2cff1efb456c0f4ad2cea98d2eae057ad1"},
+    {file = "louvain-0.8.2-cp311-cp311-win32.whl", hash = "sha256:5fee00958c0b45bfd43c20b9141370607c91e32cda28e04db4512187005616c9"},
+    {file = "louvain-0.8.2-cp311-cp311-win_amd64.whl", hash = "sha256:797fa410e2d0f208202eda27ecd686ebecefd2ce3631a754475408eb7ba01421"},
+    {file = "louvain-0.8.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:4bfefdb56f1aae4cfcfbe2041ed6583774d3bf2cc202cb07c84fd81130e91972"},
+    {file = "louvain-0.8.2-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b59bef0f36adbe9ed9a602b60a76a097654e92c186946e754ed9d115005f0078"},
+    {file = "louvain-0.8.2-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a14c3e712518640d1aeadfcdca212d0af673e99a7ce61890a4290eb34e2c1d36"},
+    {file = "louvain-0.8.2-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a8b917961fd7ff1f50fd40d7a5766825569531642bff229f612d918c878fc421"},
+    {file = "louvain-0.8.2-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:48cbf497447fc92dabcdf5b1480c13878adc7651880106099abbd09203d9b76a"},
+    {file = "louvain-0.8.2-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:03b3fc61ca4bf1930b1da40a99b8a6ced6dcd73440e94a65827740ed6cfe8150"},
+    {file = "louvain-0.8.2-cp37-cp37m-win32.whl", hash = "sha256:cc8a01d39be1e6e1a06272ae0afd75b88f85900dfa73271a6a0844a9663f27e5"},
+    {file = "louvain-0.8.2-cp37-cp37m-win_amd64.whl", hash = "sha256:ccc080411010a2fdce929a23abab8affb283b613367d474d0075cc39388408b2"},
+    {file = "louvain-0.8.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:885dc2c4630cbfa7b50de18f4d2530f1461845f43211ad093a025f3e6f2649a2"},
+    {file = "louvain-0.8.2-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:03787ef3896ca846020dbc286c4ca563498d3208ef304aeda692fb6d0f87465a"},
+    {file = "louvain-0.8.2-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:077eaf2ab521c487867a34e3d02a5b5cfb09af9f60d2c367598f1f8388c06592"},
+    {file = "louvain-0.8.2-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:06c85f332d88ad52d17a085c5fb7c37f258eb7ec4f5dc25ee445bedac50a1b8f"},
+    {file = "louvain-0.8.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8de3668f554968e2afaacb9c61ed63e46661af9c39b5b0b89eb1282baf109835"},
+    {file = "louvain-0.8.2-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:ad73cdae104b07e3739ba448885f189fbafdfe3f034bc00d4cc94592d285e579"},
+    {file = "louvain-0.8.2-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:f894ca807011deaf26c6f3da44d4dcdfd0236e3a44edc67fb1c303ac96934d28"},
+    {file = "louvain-0.8.2-cp38-cp38-win32.whl", hash = "sha256:be78d93169bca9c81b25ec7f505bb5083e2e4344920dc691648940cb695fdf9e"},
+    {file = "louvain-0.8.2-cp38-cp38-win_amd64.whl", hash = "sha256:a1c0544e01570689fcf3dcc79815c485bb1718060d2469c2a90e1b7e5577101f"},
+    {file = "louvain-0.8.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:05cb436b7c850cf1d64e9ab36808f7a2ad8f791013fd8eae945f48c870864c76"},
+    {file = "louvain-0.8.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:aa2d60bd0a65bf439302b9d7a0d005b96b3513588f31e3dae854250c190cf205"},
+    {file = "louvain-0.8.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fdf6714c65497a6f7099c542356a147bda7fbbbc279a5d5730232ee5c4133571"},
+    {file = "louvain-0.8.2-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:cf323c2131d8fe2b186376d6bef75245ba990c8b404181ef257c2ca5618653f1"},
+    {file = "louvain-0.8.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:14115a417ac958a6a0ba2393e9721167675f432854f9b08ced5261f83598d6b4"},
+    {file = "louvain-0.8.2-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:000137e8cd9b36d23376f4db590df6d04d5e4b587de88d2f68d37d8fb2061be4"},
+    {file = "louvain-0.8.2-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:af28afe6642456b5761a0833d2756d3bc8924f7b12596205652627954a626a84"},
+    {file = "louvain-0.8.2-cp39-cp39-win32.whl", hash = "sha256:007bd8061245c3160c654e98aacfa1eb532420cec7fd309e23948e2f7ad9ae53"},
+    {file = "louvain-0.8.2-cp39-cp39-win_amd64.whl", hash = "sha256:5b6d36d2de2ba18f5223cc926e74ee8b2600c5db3ac51e15eefe3f74202e83ed"},
+    {file = "louvain-0.8.2-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:b01b9439d515383d02d6b66d0df5fab4b974ef9d284c4ab6c57f571b85cbbe2c"},
+    {file = "louvain-0.8.2-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:188ae83686512b2b6d9fb27a7f3f6a0a2218f218409b431944f3dadf8bfba2d4"},
+    {file = "louvain-0.8.2-pp37-pypy37_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c0bf2505eb32d0d3525411e6708f71a3b82b2b8dabc72389fa743901e7c0800b"},
+    {file = "louvain-0.8.2-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2bd420addb6f0c85841d3c76caf7fa23becc641187970ce8f89237a75009f6ca"},
+    {file = "louvain-0.8.2-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:af36d95130e4732e8484fed194e5cc8ed32d994a181f5c8a6ee3c965825e7704"},
+    {file = "louvain-0.8.2-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:1dbc042a7007c21c33d8719d706a2857685a1a51a23516dc902a8e7c508fe122"},
+    {file = "louvain-0.8.2-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:59210a55c70eb445fea9f812284c25aae3d60e6076765e93e92a3de39ec2a0fa"},
+    {file = "louvain-0.8.2-pp38-pypy38_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1da7bbdd1e6e6ee4f1231d5671babad478d22fb0b67d5a1b1a31cb2218958270"},
+    {file = "louvain-0.8.2-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a078ae783cd5fbd86ef0f4b95ff5de1543d1a2bf7fbfadcd39a91cfc22a330cd"},
+    {file = "louvain-0.8.2-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:3dc5074852d21e722ed3efbcc54257080b05c2682731a18133c4db2844d02db4"},
+    {file = "louvain-0.8.2-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:27d6d33a875284a8003dea11b01a4cd2151e6cb67e5efc8d92841b968a4ef975"},
+    {file = "louvain-0.8.2-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:72694a9b641558915c0cfe1fde96473d57b3bccc2cf2d4bb82368603b25345ca"},
+    {file = "louvain-0.8.2-pp39-pypy39_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7f76fa8b746bcf11aa748817c73a9ba9508365eba93ac901f6f969d58a879813"},
+    {file = "louvain-0.8.2-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:43f9f32a862b2776c0701821727fe22a96a5896bd816ea348b560f1a70f20fde"},
+    {file = "louvain-0.8.2-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:6788c3e41011d9ecd6b6423caef5cf0eb01499ed950800e753cf0b69a4c1d53d"},
+    {file = "louvain-0.8.2.tar.gz", hash = "sha256:ce040bb0c5e349aead5a1e5e99738dcd9f2d10c22526d0633281b6ae230ee8d4"},
+]
+
+[package.dependencies]
+igraph = ">=0.10.0,<0.12"
+
+[[package]]
 name = "markdown-it-py"
 version = "4.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -6469,4 +6542,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "163850eb9e132fbd58cc1125096b3dfcee2ab9385c28cb78cb6298ce08be91ec"
+content-hash = "f10516e4308f8a46ac554c6fac63d515a1f7bd4e526e7a817a221dfc84f7424f"

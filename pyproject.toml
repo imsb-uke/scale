@@ -21,7 +21,8 @@ dependencies = [
     "jupyter",
     "leidenalg",
     "igraph",
-    "harmonypy (>=0.0.10,<0.0.11)"
+    "harmonypy (>=0.0.10,<0.0.11)",
+    "louvain (>=0.8.2,<0.9.0)"
 ]
 
 
