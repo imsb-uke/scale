@@ -15,7 +15,7 @@ from scale.utils import (
 from scale.config import Config
 
 
-def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=False):
+def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=False, verbose=True):
     seed_everything(cfg.seed)
 
     if cfg.device is None:
@@ -74,16 +74,20 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
     loss_1 = np.zeros((len(spatial_param_set), len(lambda_set)))
     loss_2 = np.zeros((len(spatial_param_set), len(lambda_set)))
     MI = np.zeros((len(spatial_param_set), len(lambda_set)))
-    GC = np.zeros((len(spatial_param_set), len(lambda_set)))
+    # GC = np.zeros((len(spatial_param_set), len(lambda_set)))
 
     # training loop
     print(f"Training with graphs defined by: {sparam_str} = {spatial_param_set}")
     for i, param in tqdm(enumerate(spatial_param_set), total=len(spatial_param_set)):
         # Make a the pyg graph data
+        if verbose:
+            print(f"Creating the pyg graph data for {sparam_str} = {param}")
         data = spatial_graph(
             adata, method=cfg.spatial_graph_method, param=param, n_sample=cfg.n_sample
         ).to(device)
         pos_edge_index = data.edge_index
+        if verbose:
+            print("Sampling negative edges")
         neg_edge_index = negative_sampling(pos_edge_index, num_nodes=data.x.shape[0])
 
         # whether to aggregate the y values as target
@@ -104,7 +108,7 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
             optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
             ## Train the model
-            for epoch in range(1, cfg.max_epoch + 1):
+            for epoch in tqdm(range(1, cfg.max_epoch + 1), total=cfg.max_epoch):
                 if cfg.repeated_negative_sampling and epoch % 50 == 0:
                     neg_edge_index = negative_sampling(
                         pos_edge_index, num_nodes=data.x.shape[0]
@@ -122,8 +126,9 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
                     y_out=Y_agg,
                 )
 
-            model.eval()
-            z, _, _ = model(data)
+            with torch.no_grad():
+                model.eval()
+                z, _, _ = model(data)
             z_np = z.to("cpu").detach().numpy()
 
             # store the embeddings in the adata object
@@ -132,29 +137,35 @@ def train(adata, cfg: Config, layer=None, spatial_key="spatial", return_model=Fa
             # track loss and spatial metrics
             loss_1[i, j] = loss1
             loss_2[i, j] = loss2
+            if verbose:
+                print("Calculating morans I")
             MI[i, j] = sc.metrics.morans_i(
                 adata.obsp["connectivities"],
                 adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
             ).mean()
-            GC[i, j] = sc.metrics.gearys_c(
-                adata.obsp["connectivities"],
-                adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
-            ).mean()
+            # if verbose:
+            #     print("Calculating gearys c")
+            # GC[i, j] = sc.metrics.gearys_c(
+            #     adata.obsp["connectivities"],
+            #     adata.obsm[f"X_gnn_{sparam_str}_{param}_lam_{lam}"].T,
+            # ).mean()
+            torch.cuda.empty_cache()
+        del data
 
-        adata.uns["scale"] = {
-            "loss1": loss_1,
-            "loss2": loss_2,
-            "mi": MI,
-            "gc": GC,
-            "lambdas": lambda_set,
-        }
-        if cfg.spatial_graph_method == "distance":
-            adata.uns["scale"]["distances"] = distances
-        elif cfg.spatial_graph_method == "knn":
-            adata.uns["scale"]["knn_values"] = knn_values
+    adata.uns["scale"] = {
+        "loss1": loss_1,
+        "loss2": loss_2,
+        "mi": MI,
+        # "gc": GC,
+        "lambdas": lambda_set,
+    }
+    if cfg.spatial_graph_method == "distance":
+        adata.uns["scale"]["distances"] = distances
+    elif cfg.spatial_graph_method == "knn":
+        adata.uns["scale"]["knn_values"] = knn_values
 
-        # store config
-        adata.uns["scale"]["config"] = cfg.to_dict()
+    # store config
+    adata.uns["scale"]["config"] = cfg.to_dict()
 
     if return_model:
         return model
