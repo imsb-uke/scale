@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
+
 class BaseConfig(dict):
     """Dict that also supports attribute access (recursively)."""
 
@@ -66,14 +67,18 @@ class Config(BaseConfig):
     n_heads: int = 5
     max_epoch: int = 500
     lr: float = 0.01
-    n_sample: int = None # number of maximum edges in case of distance graph (randomyl selected)
+    n_sample: int = (
+        None  # number of maximum edges in case of distance graph (randomyl selected)
+    )
     sample_key: str = None
     preprocess: bool = False
     device: str | None = None
     distance_set: dict | list = field(
         default_factory=lambda: {"start": 15, "stop": 60, "step": 5}
     )
-    knn_set: dict | list = field(default_factory=lambda: {"start": 5, "stop": 40, "step": 5})
+    knn_set: dict | list = field(
+        default_factory=lambda: {"start": 5, "stop": 40, "step": 5}
+    )
     lambda_set: list = field(
         default_factory=lambda: [
             1e-6,
@@ -100,6 +105,8 @@ class Config(BaseConfig):
     spatial_graph_method: Literal["distance", "knn"] = "distance"
     repeated_negative_sampling: bool = False
     y_aggregated: bool = False
+    stability_spatial: bool = False
+    stability_delta: float = 1.0
 
 
 def load_config(**kwargs):

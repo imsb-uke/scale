@@ -5,9 +5,12 @@ from tqdm.auto import tqdm
 from anndata import AnnData
 import re
 
+from scale.config import Config
+
 
 def calc_stability(
     adata: AnnData,
+    cfg: Config,
     n_repeat: int | None = None,
     verbose: int | bool = False,
     min_dist: float | None = None,
@@ -34,18 +37,25 @@ def calc_stability(
     if max_res is not None:
         resolutions = [r for r in resolutions if float(r) <= max_res]
 
-    # extract all possible 
+    # extract all possible
     sparam_str = "dist" if "dist" in columns[0] else "knn"
-    sparam_values = sorted(list(set([x.split(f"{sparam_str}_")[-1].split("_")[0] for x in columns])), key=float)
+    sparam_values_raw = sorted(
+        list(set([x.split(f"{sparam_str}_")[-1].split("_")[0] for x in columns])),
+        key=float,
+    )
 
-    
+    if cfg.stability_spatial:
+        sparam_values = list(np.array(sparam_values_raw)[1::3])
+    else:
+        sparam_values = sparam_values_raw
+
     def check_bounds(sparam_values, min_sparam, max_sparam):
         if min_sparam is not None:
             sparam_values = [d for d in sparam_values if float(d) >= min_sparam]
         if max_sparam is not None:
             sparam_values = [d for d in sparam_values if float(d) <= max_sparam]
         return sparam_values
-    
+
     if sparam_str == "dist":
         sparam_values = check_bounds(sparam_values, min_dist, max_dist)
     elif sparam_str == "knn":
@@ -53,20 +63,7 @@ def calc_stability(
     else:
         raise ValueError(f"Invalid sparam_str: {sparam_str}")
 
-    # extract number of repetitions
-    if n_repeat is None:
-        # find the smallest number of repetitions present for all clusterings
-        settings = [re.sub(r"rep_\d+_", "", x) for x in columns]
-        tmp = pd.DataFrame({"settings": settings})
-        n_repeat = tmp["settings"].value_counts().min()
-
-    if verbose:
-        print(f"n_repeat: {n_repeat}")
-        print(f"n_resolutions: {len(resolutions)}")
-        print(f"n_{sparam_str}_values: {len(sparam_values)}")
-        print(f"resolutions: {resolutions}")
-        print(f"{sparam_str}_values: {sparam_values}")
-
+    # create stability dataframe scaffold
     stability_df = pd.DataFrame(
         np.zeros((len(sparam_values), len(resolutions))),
         index=sparam_values,
@@ -74,26 +71,71 @@ def calc_stability(
     )
     stability_df.index.name = sparam_str
     stability_df.columns.name = "resolution"
-    for i, sparam_value in tqdm(
-        enumerate(sparam_values), total=len(sparam_values), desc="Calculating stability"
-    ):
-        for j, res in enumerate(resolutions):
-            ari_scores = []
-            for r1 in range(n_repeat):
-                for r2 in range(r1 + 1, n_repeat):
+
+    if not cfg.stability_spatial:
+        # extract number of repetitions
+        if n_repeat is None:
+            # find the smallest number of repetitions present for all clusterings
+            settings = [re.sub(r"rep_\d+_", "", x) for x in columns]
+            tmp = pd.DataFrame({"settings": settings})
+            n_repeat = tmp["settings"].value_counts().min()
+        else:
+            assert n_repeat > 1, "n_repeat must be at greater than 1"
+
+        if verbose:
+            print(f"n_repeat: {n_repeat}")
+            print(f"n_resolutions: {len(resolutions)}")
+            print(f"n_{sparam_str}_values: {len(sparam_values)}")
+            print(f"resolutions: {resolutions}")
+            print(f"{sparam_str}_values: {sparam_values}")
+
+        for i, sparam_value in tqdm(
+            enumerate(sparam_values),
+            total=len(sparam_values),
+            desc="Calculating stability",
+        ):
+            for j, res in enumerate(resolutions):
+                ari_scores = []
+                for r1 in range(n_repeat):
+                    for r2 in range(r1 + 1, n_repeat):
+                        try:
+                            ari = adjusted_rand_score(
+                                df[
+                                    f"leiden_rep_{r1}_{sparam_str}_{sparam_value}_res_{res}"
+                                ],
+                                df[
+                                    f"leiden_rep_{r2}_{sparam_str}_{sparam_value}_res_{res}"
+                                ],
+                            )
+                        except Exception as e:
+                            print("Error:", e)
+                            ari = 0
+                        ari_scores.append(ari)
+                ari_scores = np.array(ari_scores)
+                stability_df.loc[sparam_value, res] = ari_scores.mean()
+    else:
+        sparam_values_raw = np.array(sparam_values_raw).reshape(-1, 3)
+        for k, row in enumerate(sparam_values_raw):
+            for res in resolutions:
+                ari_scores = []
+                for i in [-1, 1]:
                     try:
-                        ari = adjusted_rand_score(
-                            df[f"leiden_rep_{r1}_{sparam_str}_{sparam_value}_res_{res}"],
-                            df[f"leiden_rep_{r2}_{sparam_str}_{sparam_value}_res_{res}"],
-                        )
+                        entry_1 = f"leiden_rep_0_{sparam_str}_{row[1]}_res_{res}"
+                        entry_2 = f"leiden_rep_0_{sparam_str}_{row[1 + i]}_res_{res}"
+                        ari = adjusted_rand_score(df[entry_1], df[entry_2])
                     except Exception as e:
                         print("Error:", e)
                         ari = 0
                     ari_scores.append(ari)
-            ari_scores = np.array(ari_scores)
-            stability_df.loc[sparam_value, res] = ari_scores.mean()
+                ari_scores = np.array(ari_scores)
+                # use the middle value as the indexer
+                stability_df.loc[row[1], res] = ari_scores.mean()
 
     for col in stability_df.columns:
         stability_df[col] = stability_df[col].astype(float)
 
     adata.uns["scale"]["stability"] = stability_df
+
+
+def prepare_stability_params(adata: AnnData):
+    pass

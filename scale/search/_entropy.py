@@ -62,87 +62,107 @@ def filter_tuples(
     max_nclusters_start=None,
     verbose=False,
     order=True,
+    output_rejection_reasons=False,
 ):
     filtered_tuples = []
+    rejection_reasons = []
     for t in tuples:
         # order from low to high level or from high cluster num to low cluster num
         n_clusters = n_clusters_per_setting.loc[list(t)].sort_values(ascending=False)
         t_ordered = n_clusters.index.tolist()
 
         if n_clusters.duplicated().any():
+            reject_str = "The number of clusters is duplicated"
             if verbose:
                 print(f"Skipping tuple {n_clusters}\n")
-                print("The number of clusters is duplicated")
+                print(reject_str)
+            rejection_reasons.append(reject_str)
             continue
 
         # check if the number of clusters increases enough
         min_ratio = (n_clusters / n_clusters.shift(-1)).min()
         if min_ratio < min_ncluster_increase_ratio:
+            reject_str = f"The number of clusters is not increasing enough: {min_ratio}"
             if verbose:
                 print(f"Skipping tuple {n_clusters}\n")
-                print(f"The number of clusters is not increasing enough: {min_ratio}")
+                print(reject_str)
+            rejection_reasons.append(reject_str)
             continue
 
         min_diff = (n_clusters - n_clusters.shift(-1)).min()
         if min_diff < min_ncluster_increase:
+            reject_str = f"The number of clusters is not increasing enough: {min_diff}"
             if verbose:
                 print(f"Skipping tuple {n_clusters}\n")
-                print(f"The number of clusters is not increasing enough: {min_diff}")
+                print(reject_str)
+            rejection_reasons.append(reject_str)
             continue
 
         if min_nclusters is not None:
             if n_clusters.min() < min_nclusters:
+                reject_str = f"The number of clusters is less than {min_nclusters}"
                 if verbose:
                     print(
                         f"Skipping tuple {n_clusters}\n"
                         f"The number of clusters is less than {min_nclusters}"
                     )
+                rejection_reasons.append(reject_str)
                 continue
         if max_nclusters is not None:
             if n_clusters.max() > max_nclusters:
+                reject_str = f"The number of clusters is greater than {max_nclusters}"
                 if verbose:
-                    print(
-                        f"Skipping tuple {n_clusters}\n"
-                        f"The number of clusters is greater than {max_nclusters}"
-                    )
+                    print(f"Skipping tuple {n_clusters}\n" + reject_str)
+                rejection_reasons.append(reject_str)
                 continue
 
         if min_nclusters_start is not None:
             if n_clusters.iloc[-1] < min_nclusters_start:
+                reject_str = (
+                    f"The number of clusters is less than {min_nclusters_start}"
+                )
                 if verbose:
-                    print(
-                        f"Skipping tuple {n_clusters}\n"
-                        f"The number of clusters is less than {min_nclusters_start}"
-                    )
+                    print(f"Skipping tuple {n_clusters}\n" + reject_str)
+                rejection_reasons.append(reject_str)
                 continue
         if max_nclusters_start is not None:
             if n_clusters.iloc[-1] > max_nclusters_start:
+                reject_str = (
+                    f"The number of clusters is greater than {max_nclusters_start}"
+                )
                 if verbose:
-                    print(
-                        f"Skipping tuple {n_clusters}\n"
-                        f"The number of clusters is greater than {max_nclusters_start}"
-                    )
+                    print(f"Skipping tuple {n_clusters}\n" + reject_str)
+                rejection_reasons.append(reject_str)
                 continue
 
         if enforce_dist_change:
             distances = [extract_dist(x) for x in n_clusters.index]
             if len(distances) != len(set(distances)):
+                reject_str = "The distances are not unique"
                 if verbose:
                     print(f"Skipping tuple {n_clusters}\n")
-                    print("The distances are not unique")
+                    print(reject_str)
+                rejection_reasons.append(reject_str)
                 continue
             if not is_ordered(distances):
+                reject_str = "The distances are not ordered"
                 if verbose:
                     print(f"Skipping tuple {n_clusters}\n")
-                    print("The distances are not ordered")
+                    print(reject_str)
+                rejection_reasons.append(reject_str)
                 continue
+
+        rejection_reasons.append("Tuple passed all filters!")
 
         if order:
             filtered_tuples.append(t_ordered)
         else:
             filtered_tuples.append(t)
 
-    return filtered_tuples
+    if output_rejection_reasons:
+        return filtered_tuples, rejection_reasons
+    else:
+        return filtered_tuples
 
 
 def calc_entropy_per_tuple(df):
@@ -209,15 +229,21 @@ def calc_entropy(
     print(f"Considering {len(settings)} settings and {tot_comps} tuples in total.")
 
     # filter tuples
-    filtered_tuples = filter_tuples(
+    filtered_tuples, rejection_reasons = filter_tuples(
         tuples,
         n_clusters_per_setting,
         verbose=False,
         order=True,
         **kwargs,
+        output_rejection_reasons=True,
     )
 
     print(f"Retained {len(filtered_tuples)} tuples after filtering")
+
+    if len(filtered_tuples) == 0:
+        print("No tuples left after filtering. Returning empty results.")
+        adata.uns["scale"]["entropy"] = rejection_reasons
+        return None
 
     with Parallel(n_jobs=n_jobs) as parallel:
         results = parallel(

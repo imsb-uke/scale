@@ -11,6 +11,8 @@ from sklearn.metrics import (
     homogeneity_score,
     completeness_score,
 )
+from sklearn.cluster import KMeans
+from scipy.sparse import issparse
 
 from scale.config import Config
 
@@ -21,11 +23,13 @@ def calc_clusterings(
     n_jobs=20,
     ensure_unique=True,
     emb_prefix="X_gnn",
+    method="leiden",
     **kwargs,
 ):
     resolutions = np.arange(
         cfg.resolution_set.start, cfg.resolution_set.stop, cfg.resolution_set.step
     ).round(4)
+    n_repeats = 1 if cfg.stability_spatial else cfg.n_repeats
 
     all_clusterings = pd.DataFrame(index=adata.obs_names)
 
@@ -47,11 +51,12 @@ def calc_clusterings(
         sparam_str = "dist" if "dist" in emb_key else "knn"
         sparam = emb_key.split(f"{sparam_str}_")[-1].split("_lam")[0]
 
-        for i in tqdm(range(cfg.n_repeats), desc="Calculating clusterings"):
-            parallel_leiden(
+        for i in tqdm(range(n_repeats), desc="Calculating clusterings"):
+            parallel_clustering(
                 ad_tmp,
                 resolutions,
                 key_added=f"leiden_rep_{i}_{sparam_str}_{sparam}",
+                method=method,
                 n_jobs=n_jobs,
                 verbose=kwargs.get("verbose", False),
                 random_state=i,
@@ -118,6 +123,71 @@ def parallel_leiden(
 
     clusterings = Parallel(n_jobs=n_jobs)(delayed(loop)(r, adata) for r in resolutions)
 
+    for clustering in clusterings:
+        adata.obs[clustering.name] = clustering
+
+    return adata
+
+
+def parallel_clustering(
+    adata,
+    resolutions,
+    method="leiden",
+    key_added="scale",
+    n_jobs=10,
+    verbose=True,
+    random_state=0,
+    **kwargs,
+):
+    def to_key(r):
+        return key_added + "_res_" + str(r)
+
+    def loop(adata, r=None, **kwargs):
+        if method == "leiden":
+            flavor = kwargs.pop("flavor", "igraph")
+            n_iterations = kwargs.pop("n_iterations", 2)
+            key = to_key(r)
+            sc.tl.leiden(
+                adata,
+                resolution=r,
+                key_added=key,
+                random_state=random_state,
+                flavor=flavor,
+                n_iterations=n_iterations,
+                **kwargs,
+            )
+            if verbose:
+                print(f"Resolution = {r} Done!")
+            return adata.obs[key]
+        elif method == "louvain":
+            key = to_key(r)
+            sc.tl.louvain(
+                adata,
+                resolution=r,
+                key_added=key,
+                random_state=random_state,
+                flavor="vtraag",
+            )
+            if verbose:
+                print(f"Resolution = {r} Done!")
+            return adata.obs[key]
+        elif method == "kmeans":
+            k = int(r)
+            X = adata.obsm["X_pca"] if "X_pca" in adata.obsm else adata.X
+            X = X.A if issparse(X) else X
+            km = KMeans(n_clusters=k, random_state=random_state)
+            labels = km.fit_predict(X)
+            key = to_key(k)
+            adata.obs[key] = pd.Categorical(labels.astype(str))
+            if verbose:
+                print(f"K value = {k} Done!")
+            return adata.obs[key]
+        else:
+            raise ValueError(f"Invalid method: {method}")
+
+    clusterings = Parallel(n_jobs=n_jobs)(
+        delayed(loop)(adata, r, **kwargs) for r in resolutions
+    )
     for clustering in clusterings:
         adata.obs[clustering.name] = clustering
 
